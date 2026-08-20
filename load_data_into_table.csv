@@ -1,0 +1,48 @@
+LOAD DATA LOCAL INFILE 'copy file path and paste here'
+INTO TABLE books
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\r\n'
+IGNORE 1 ROWS
+(isbn, book_title, category, rental_price, status, author, publisher);
+
+LOAD DATA LOCAL INFILE 'copy file path and paste here'
+INTO TABLE branch
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\r\n'
+IGNORE 1 ROWS
+(branch_id, manager_id, branch_address, contact_no);
+
+LOAD DATA LOCAL INFILE 'Ccopy file path and paste here'
+INTO TABLE employees
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\r\n'
+IGNORE 1 ROWS
+(emp_id, emp_name, position, salary, branch_id);
+
+LOAD DATA LOCAL INFILE 'copy file path and paste here'
+INTO TABLE members
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\r\n'
+IGNORE 1 ROWS
+(member_id, member_name, ember_address, reg_date);
+
+
+LOAD DATA LOCAL INFILE 'copy file path and paste here'
+INTO TABLE return_status
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\r\n'
+IGNORE 1 ROWS
+(return_id, issued_id, return_book_name, return_date, return_book_isbn);
+
+LOAD DATA LOCAL INFILE 'copy file path and paste here'
+INTO TABLE issued_status
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\r\n'
+IGNORE 1 ROWS
+(isbn, book_title, category, rental_price, status, author, publisher);
