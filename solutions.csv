@@ -1,0 +1,296 @@
+Task Number,Task / Question,SQL Solution,Explanation / What the Query Does
+Task 1,Create a New Book Record,"INSERT INTO books (
+    isbn, book_title, category, rental_price, status, author, publisher
+)
+VALUES (
+    '978-1-60129-456-2',
+    'To Kill a Mockingbird',
+    'Classic',
+    6.00,
+    'yes',
+    'Harper Lee',
+    'J.B. Lippincott & Co.'
+);
+
+SELECT * FROM books
+WHERE isbn = '978-1-60129-456-2';",Adds a new book to the books table. The SELECT query verifies that the book was inserted successfully.
+
+  
+Task 2,Update an Existing Member's Address,"UPDATE members
+SET member_address = '125 Oak St'
+WHERE member_id = 'C103';
+
+SELECT *
+FROM members
+WHERE member_id = 'C103';",Updates the address only for member C103. WHERE prevents other members from being updated.
+
+  
+Task 3,Delete a Record from the Issued Status Table,"DELETE FROM issued_status
+WHERE issued_id = 'IS104';
+
+SELECT *
+FROM issued_status
+WHERE issued_id = 'IS104';",Deletes the issue transaction IS104 and then checks whether the record is gone.
+
+  
+Task 4,Retrieve All Books Issued by Employee E101,"SELECT
+    issued_id,
+    issued_book_name,
+    issued_book_isbn,
+    issued_date
+FROM issued_status
+WHERE issued_emp_id = 'E101';",Filters issued_status and displays only books processed by employee E101.
+
+
+Task 5,List Members Who Have Issued More Than One Book,"SELECT
+    m.member_id,
+    m.member_name,
+    COUNT(ist.issued_id) AS total_books_issued
+FROM members AS m
+JOIN issued_status AS ist
+    ON m.member_id = ist.issued_member_id
+GROUP BY
+    m.member_id,
+    m.member_name
+HAVING COUNT(ist.issued_id) > 1;","Joins members with issue records, groups by member, counts issued books, and keeps members with more than one issue."
+
+
+Task 6,CTAS: Create Book Issue Summary Table,"DROP TABLE IF EXISTS book_issued_cnt;
+
+CREATE TABLE book_issued_cnt AS
+SELECT
+    b.isbn,
+    b.book_title,
+    COUNT(ist.issued_id) AS issue_count
+FROM books AS b
+LEFT JOIN issued_status AS ist
+    ON b.isbn = ist.issued_book_isbn
+GROUP BY
+    b.isbn,
+    b.book_title;
+
+SELECT * FROM book_issued_cnt;",Creates a new summary table using CTAS. Each book is listed with the total number of times it was issued.
+  
+  
+Task 7,Retrieve All Books in a Specific Category,"SELECT *
+FROM books
+WHERE category = 'Classic';",Displays all books belonging to the Classic category.
+
+  
+Task 8,Find Total Rental Income by Category,"SELECT
+    b.category,
+    SUM(b.rental_price) AS total_rental_income,
+    COUNT(ist.issued_id) AS total_books_issued
+FROM issued_status AS ist
+JOIN books AS b
+    ON ist.issued_book_isbn = b.isbn
+GROUP BY b.category
+ORDER BY total_rental_income DESC;","Joins issued books with book details, groups records by category, calculates total rental revenue, and counts issues."
+
+  
+Task 9,List Members Who Registered in the Last 180 Days,"SELECT *
+FROM members
+WHERE reg_date >= DATE_SUB(CURDATE(), INTERVAL 180 DAY);",Displays members whose registration date is within the last 180 days from the current date.
+
+  
+  
+Task 10,List Employees with Manager Name and Branch Details,"SELECT
+    e.emp_id,
+    e.emp_name,
+    e.position,
+    e.salary,
+    b.branch_id,
+    b.branch_address,
+    b.contact_no,
+    manager.emp_name AS manager_name
+FROM employees AS e
+JOIN branch AS b
+    ON e.branch_id = b.branch_id
+LEFT JOIN employees AS manager
+    ON b.manager_id = manager.emp_id;",Uses a self-join on employees to find the branch manager and joins branch information for every employee.
+
+      
+Task 11,CTAS: Create Table of Expensive Books,"DROP TABLE IF EXISTS expensive_books;
+
+CREATE TABLE expensive_books AS
+SELECT *
+FROM books
+WHERE rental_price > 7.00;
+
+SELECT * FROM expensive_books;",Creates a new table containing books whose rental price is greater than 7.00.
+
+  
+Task 12,Retrieve Books Not Yet Returned,"SELECT
+    ist.issued_id,
+    ist.issued_member_id,
+    ist.issued_book_name,
+    ist.issued_book_isbn,
+    ist.issued_date
+FROM issued_status AS ist
+LEFT JOIN return_status AS rs
+    ON ist.issued_id = rs.issued_id
+WHERE rs.return_id IS NULL;",Finds issue records that have no matching return record.
+
+  
+Task 13,Identify Members with Overdue Books,"SELECT
+    m.member_name,
+    b.book_title,
+    ist.issued_date,
+    DATEDIFF(CURDATE(), ist.issued_date) - 30 AS days_overdue
+FROM issued_status AS ist
+JOIN members AS m
+    ON ist.issued_member_id = m.member_id
+JOIN books AS b
+    ON ist.issued_book_isbn = b.isbn
+LEFT JOIN return_status AS rs
+    ON ist.issued_id = rs.issued_id
+WHERE rs.return_id IS NULL
+  AND DATEDIFF(CURDATE(), ist.issued_date) > 30
+ORDER BY days_overdue DESC;",Finds books not returned after 30 days and calculates the number of overdue days.
+
+  
+Task 14,Update Book Status on Return,"UPDATE books AS b
+JOIN return_status AS rs
+    ON b.isbn = rs.return_book_isbn
+SET b.status = 'yes';",Marks books as available (yes) when their ISBN appears in the return_status table.
+
+  
+Task 15,Branch Performance Report,"SELECT
+    b.branch_id,
+    b.manager_id,
+    COUNT(DISTINCT ist.issued_id) AS number_of_books_issued,
+    COUNT(DISTINCT rs.return_id) AS number_of_books_returned,
+    COALESCE(SUM(bk.rental_price), 0) AS total_revenue
+FROM branch AS b
+LEFT JOIN employees AS e
+    ON b.branch_id = e.branch_id
+LEFT JOIN issued_status AS ist
+    ON e.emp_id = ist.issued_emp_id
+LEFT JOIN return_status AS rs
+    ON ist.issued_id = rs.issued_id
+LEFT JOIN books AS bk
+    ON ist.issued_book_isbn = bk.isbn
+GROUP BY
+    b.branch_id,
+    b.manager_id;","Creates a branch-wise report showing issued books, returned books, and rental revenue."
+
+
+      
+Task 16,CTAS: Create Active Members Table,"DROP TABLE IF EXISTS active_members;
+
+CREATE TABLE active_members AS
+SELECT DISTINCT
+    m.member_id,
+    m.member_name,
+    m.member_address,
+    m.reg_date
+FROM members AS m
+JOIN issued_status AS ist
+    ON m.member_id = ist.issued_member_id
+WHERE ist.issued_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH);
+
+SELECT * FROM active_members;",Creates a table of members who issued at least one book during the last 6 months.
+
+  
+Task 17,Find Top 3 Employees with Most Book Issues Processed,"SELECT
+    e.emp_id,
+    e.emp_name,
+    b.branch_id,
+    b.branch_address,
+    COUNT(ist.issued_id) AS number_of_books_processed
+FROM employees AS e
+JOIN issued_status AS ist
+    ON e.emp_id = ist.issued_emp_id
+JOIN branch AS b
+    ON e.branch_id = b.branch_id
+GROUP BY
+    e.emp_id,
+    e.emp_name,
+    b.branch_id,
+    b.branch_address
+ORDER BY number_of_books_processed DESC
+LIMIT 3;","Counts issues handled by each employee, sorts from highest to lowest, and returns the top 3."
+
+  
+  
+Task 18,Identify Members Issuing Damaged Books More Than Twice,"SELECT
+    m.member_id,
+    m.member_name,
+    b.book_title,
+    COUNT(ist.issued_id) AS times_issued
+FROM members AS m
+JOIN issued_status AS ist
+    ON m.member_id = ist.issued_member_id
+JOIN books AS b
+    ON ist.issued_book_isbn = b.isbn
+WHERE b.status = 'damaged'
+GROUP BY
+    m.member_id,
+    m.member_name,
+    b.book_title
+HAVING COUNT(ist.issued_id) > 2
+ORDER BY times_issued DESC;",Finds members who issued the same damaged/high-risk book more than twice.
+
+  
+Task 19,Stored Procedure to Manage Book Status,"DELIMITER //
+
+CREATE PROCEDURE update_book_status(
+    IN p_book_isbn VARCHAR(50),
+    IN p_action VARCHAR(10)
+)
+BEGIN
+    IF p_action = 'issue' THEN
+        UPDATE books
+        SET status = 'no'
+        WHERE isbn = p_book_isbn;
+
+    ELSEIF p_action = 'return' THEN
+        UPDATE books
+        SET status = 'yes'
+        WHERE isbn = p_book_isbn;
+
+    ELSE
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Invalid action. Use issue or return';
+    END IF;
+END //
+
+DELIMITER ;",Creates a reusable procedure. Issuing a book changes status to no; returning it changes status to yes.
+
+  
+  
+Task 20,CTAS: Identify Overdue Books and Calculate Fines,"DROP TABLE IF EXISTS overdue_books_fines;
+
+CREATE TABLE overdue_books_fines AS
+SELECT
+    ist.issued_member_id AS member_id,
+
+    COUNT(DISTINCT CASE
+        WHEN rs.return_id IS NULL
+         AND DATEDIFF(CURDATE(), ist.issued_date) > 30
+        THEN ist.issued_id
+    END) AS number_of_overdue_books,
+
+    ROUND(
+        SUM(
+            CASE
+                WHEN rs.return_id IS NULL
+                 AND DATEDIFF(CURDATE(), ist.issued_date) > 30
+                THEN (DATEDIFF(CURDATE(), ist.issued_date) - 30) * 0.50
+                ELSE 0
+            END
+        ),
+        2
+    ) AS total_fines,
+
+    COUNT(DISTINCT ist.issued_id) AS number_of_books_issued
+
+FROM issued_status AS ist
+LEFT JOIN return_status AS rs
+    ON ist.issued_id = rs.issued_id
+
+GROUP BY ist.issued_member_id;
+
+SELECT *
+FROM overdue_books_fines
+ORDER BY total_fines DESC;","Creates a new table containing each member's overdue-book count, total fine at 0.50 per overdue day, and total number of books issued."
